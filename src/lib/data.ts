@@ -133,6 +133,7 @@ export interface DB {
 }
 
 /* ---------- helpers ---------- */
+export const CATEGORIES = TEXTILE_CATEGORIES;
 export const TEXTILE_CATEGORIES = [
   "Silk",
   "Cotton",
