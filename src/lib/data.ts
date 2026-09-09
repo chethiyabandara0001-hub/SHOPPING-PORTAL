@@ -133,7 +133,6 @@ export interface DB {
 }
 
 /* ---------- helpers ---------- */
-export const CATEGORIES = TEXTILE_CATEGORIES;
 export const TEXTILE_CATEGORIES = [
   "Silk",
   "Cotton",
@@ -146,6 +145,8 @@ export const TEXTILE_CATEGORIES = [
   "Organic",
   "Vintage",
 ] as const;
+
+export const CATEGORIES = TEXTILE_CATEGORIES;
 
 export const uid = (p = "id") => `${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
