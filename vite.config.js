@@ -12,4 +12,26 @@ export default defineConfig({
       port: 3000,
     },
   },
+  build: {
+    // Enable minification for production
+    minify: "esbuild",
+    // Generate sourcemaps for debugging (optional, remove for smaller builds)
+    sourcemap: false,
+    // Optimize chunking
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom"],
+          router: ["react-router-dom"],
+          charts: ["recharts"],
+          motion: ["framer-motion"],
+          // Firebase loaded lazily - keep in separate chunk
+          firebase: ["firebase/app", "firebase/auth", "firebase/firestore", "firebase/analytics"],
+        },
+      },
+    },
+  },
+  optimizeDeps: {
+    include: ["firebase/app", "firebase/auth", "firebase/firestore", "firebase/analytics"],
+  },
 });

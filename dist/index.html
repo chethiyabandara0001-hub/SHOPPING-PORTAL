@@ -6,16 +6,39 @@
     <title>KIOSK — The Everyday Goods Market</title>
     <meta name="description" content="KIOSK is a small marketplace for good goods at honest prices. Buy, sell, and run the floor." />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230E5A47'/%3E%3Crect x='5' y='6' width='4.4' height='12' fill='%23F2A614'/%3E%3Crect x='9.4' y='6' width='4.4' height='12' fill='%23FBFAF6'/%3E%3Crect x='13.8' y='6' width='4.4' height='12' fill='%23F2A614'/%3E%3Crect x='18.2' y='6' width='4.4' height='12' fill='%23FBFAF6'/%3E%3Crect x='22.6' y='6' width='4.4' height='12' fill='%23F2A614'/%3E%3Crect x='8' y='21' width='16' height='6' rx='1.5' fill='%23FBFAF6'/%3E%3C/svg%3E" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    
+    <!-- Preconnect with proper crossorigin -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Load fonts asynchronously to prevent render blocking -->
     <link
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Spline+Sans:wght@300..700&family=Spline+Sans+Mono:wght@400..700&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
-    <script type="module" crossorigin src="/assets/index-x4oBHvGM.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-D5YNO23c.css">
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Spline+Sans:wght@300..700&family=Spline+Sans+Mono:wght@400..700&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
+    
+    <!-- Preload critical assets -->
+    <link rel="modulepreload" href="data:application/octet-stream;base64,aW1wb3J0IFJlYWN0IGZyb20gInJlYWN0IjsKaW1wb3J0IFJlYWN0RE9NIGZyb20gInJlYWN0LWRvbS9jbGllbnQiOwppbXBvcnQgIi4vaW5kZXguY3NzIjsKaW1wb3J0IEFwcCBmcm9tICIuL0FwcC50c3giOwoKUmVhY3RET00uY3JlYXRlUm9vdChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgicm9vdCIpISkucmVuZGVyKDxBcHAgLz4pOwo=" />
+    <script type="module" crossorigin src="/assets/index-CN6ahw9a.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-C8w-UNLI.js">
+    <link rel="modulepreload" crossorigin href="/assets/router-BKjPBIQV.js">
+    <link rel="modulepreload" crossorigin href="/assets/motion-mDnhVgDQ.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-C-6Color.css">
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Optional: Add skeleton loader for better perceived performance -->
+      <style>
+        #root { min-height: 100vh; background: #FBFAF6; }
+      </style>
+    </div>
   </body>
 </html>
