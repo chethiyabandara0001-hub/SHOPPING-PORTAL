@@ -1,14 +1,18 @@
 /* ---------- domain types ---------- */
 export type Role = "buyer" | "seller" | "admin";
 
+/**
+ * Sri Lankan address format with district and province
+ */
 export interface Address {
   line1: string;
   line2?: string;
   city: string;
-  state?: string;
-  zip: string;
-  country: string;
-  phone?: string;
+  district: string;      // e.g., Colombo, Kandy, Galle
+  province: string;      // e.g., Western, Central, Southern
+  postalCode: string;    // Sri Lankan postal code (5 digits)
+  country: string;       // Default: "Sri Lanka"
+  phone: string;         // Required for delivery
 }
 
 /**
@@ -30,6 +34,92 @@ export interface SellerProfile {
 export const stallComplete = (u: User | undefined | null) => Boolean(u?.seller && u.seller.payout?.detail);
 
 /**
+ * Sri Lankan provinces for address selection
+ */
+export const SRI_LANKA_PROVINCES = [
+  "Western Province",
+  "Central Province",
+  "Southern Province",
+  "Northern Province",
+  "Eastern Province",
+  "North Western Province",
+  "North Central Province",
+  "Uva Province",
+  "Sabaragamuwa Province",
+] as const;
+
+/**
+ * Major districts in Sri Lanka
+ */
+export const SRI_LANKA_DISTRICTS = [
+  "Colombo", "Gampaha", "Kalutara",           // Western
+  "Kandy", "Matale", "Nuwara Eliya",          // Central
+  "Galle", "Matara", "Hambantota",            // Southern
+  "Jaffna", "Kilinochchi", "Mannar", "Vavuniya", "Mullaitivu",  // Northern
+  "Batticaloa", "Ampara", "Trincomalee",      // Eastern
+  "Kurunegala", "Puttalam",                    // North Western
+  "Anuradhapura", "Polonnaruwa",              // North Central
+  "Badulla", "Monaragala",                     // Uva
+  "Kegalle", "Ratnapura",                      // Sabaragamuwa
+] as const;
+
+/**
+ * Validate Sri Lankan phone number format
+ * Accepts: +94XXXXXXXXX, 07XXXXXXXX, 94XXXXXXXXX
+ */
+export const validateSriLankaPhone = (phone: string): boolean => {
+  const cleaned = phone.replace(/[\s\-\(\)]/g, "");
+  // Match +94 or 94 followed by 9 digits, or 07 followed by 8 digits
+  const regex = /^(\+94|94)7[0-9]{8}$|^07[0-9]{8}$/;
+  return regex.test(cleaned);
+};
+
+/**
+ * Format phone number to standard Sri Lankan format (+94 XXX XXX XXXX)
+ */
+export const formatSriLankaPhone = (phone: string): string => {
+  const cleaned = phone.replace(/[\s\-\(\)]/g, "");
+  
+  if (cleaned.startsWith("+94")) {
+    const num = cleaned.slice(3);
+    return `+94 ${num.slice(0, 2)} ${num.slice(2, 5)} ${num.slice(5)}`;
+  }
+  
+  if (cleaned.startsWith("94")) {
+    const num = cleaned.slice(2);
+    return `+94 ${num.slice(0, 2)} ${num.slice(2, 5)} ${num.slice(5)}`;
+  }
+  
+  if (cleaned.startsWith("07")) {
+    const num = cleaned.slice(1);
+    return `+94 ${num.slice(0, 2)} ${num.slice(2, 5)} ${num.slice(5)}`;
+  }
+  
+  return phone;
+};
+
+/**
+ * Validate Sri Lankan postal code (5 digits)
+ */
+export const validatePostalCode = (code: string): boolean => {
+  return /^\d{5}$/.test(code);
+};
+
+/**
+ * Create empty address object with Sri Lankan defaults
+ */
+export const createEmptyAddress = (): Address => ({
+  line1: "",
+  line2: "",
+  city: "",
+  district: "",
+  province: "",
+  postalCode: "",
+  country: "Sri Lanka",
+  phone: "",
+});
+
+/**
  * A market member profile. The first user becomes admin/seller automatically.
  */
 export interface User {
@@ -43,7 +133,7 @@ export interface User {
   seller?: SellerProfile | null;
   color: string;
   joined: number;
-  address: Address;
+  address: Address | null;  // Can be null until user adds it
 }
 
 export const stallName = (u: User | undefined | null) => u?.seller?.stallName ?? u?.name ?? "Viora";
@@ -150,8 +240,29 @@ export const CATEGORIES = TEXTILE_CATEGORIES;
 
 export const uid = (p = "id") => `${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
-export const money = (n: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(n);
+/**
+ * Format currency for Sri Lankan Rupees (LKR)
+ * Displays as: Rs. 1,990 or Rs. 12,500
+ */
+export const money = (n: number) => {
+  const currency = import.meta.env.VITE_APP_CURRENCY || "LKR";
+  return new Intl.NumberFormat("en-LK", {
+    style: "currency",
+    currency: currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(n);
+};
+
+/**
+ * Get the app's configured currency code
+ */
+export const getCurrency = () => import.meta.env.VITE_APP_CURRENCY || "LKR";
+
+/**
+ * Get the app's configured country code
+ */
+export const getCountry = () => import.meta.env.VITE_APP_COUNTRY || "LK";
 
 export const timeAgo = (t: number) => {
   const s = Math.max(1, Math.floor((Date.now() - t) / 1000));
@@ -196,12 +307,19 @@ export const seedDB = (): DB => ({
   v: 5,
   settings: {
     commission: 0,
-    announcement: "Welcome to Viora — Your destination for premium textiles and fabrics.",
+    announcement: "Welcome to Viora — Your destination for premium textiles and fabrics in Sri Lanka.",
     shippingRates: [
-      { region: "Domestic", rate: 8.99 },
-      { region: "International", rate: 24.99 },
+      { region: "Western Province", rate: 450 },
+      { region: "Central Province", rate: 650 },
+      { region: "Southern Province", rate: 750 },
+      { region: "Northern Province", rate: 950 },
+      { region: "Eastern Province", rate: 850 },
+      { region: "North Western", rate: 700 },
+      { region: "North Central", rate: 800 },
+      { region: "Uva Province", rate: 850 },
+      { region: "Sabaragamuwa", rate: 700 },
     ],
-    currency: "USD",
+    currency: "LKR",
   },
   users: [],
   products: [
@@ -211,11 +329,11 @@ export const seedDB = (): DB => ({
       name: "Pure Mulberry Silk Fabric",
       category: "Silk",
       subcategory: "Plain Weave",
-      price: 45.00,
-      compareAt: 65.00,
+      price: 6500,
+      compareAt: 9500,
       stock: 24,
       sold: 0,
-      desc: "Luxurious 100% pure mulberry silk fabric with a smooth, lustrous finish. Perfect for evening wear, scarves, and luxury linings. Weight: 16 momme.",
+      desc: "Luxurious 100% pure mulberry silk fabric with a smooth, lustrous finish. Perfect for evening wear, sarees, and luxury linings. Weight: 16 momme.",
       material: "100% Mulberry Silk",
       dimensions: "45 inches wide, sold by the yard",
       careInstructions: "Dry clean only or hand wash cold with silk detergent",
@@ -231,11 +349,11 @@ export const seedDB = (): DB => ({
       name: "Organic Cotton Voile",
       category: "Cotton",
       subcategory: "Voile",
-      price: 18.50,
+      price: 2800,
       compareAt: null,
       stock: 50,
       sold: 0,
-      desc: "Lightweight, breathable organic cotton voile. GOTS certified. Ideal for summer dresses, blouses, and baby garments.",
+      desc: "Lightweight, breathable organic cotton voile. GOTS certified. Ideal for summer dresses, kurtas, and baby garments.",
       material: "100% Organic Cotton",
       dimensions: "58 inches wide, sold by the yard",
       careInstructions: "Machine wash cold, tumble dry low",
@@ -251,8 +369,8 @@ export const seedDB = (): DB => ({
       name: "Belgian Linen Fabric",
       category: "Linen",
       subcategory: "Medium Weight",
-      price: 32.00,
-      compareAt: 42.00,
+      price: 4800,
+      compareAt: 6200,
       stock: 36,
       sold: 0,
       desc: "Authentic Belgian linen with beautiful natural slubs. Gets softer with each wash. Perfect for shirts, pants, and home decor.",
@@ -271,7 +389,7 @@ export const seedDB = (): DB => ({
       name: "Merino Wool Tweed",
       category: "Wool",
       subcategory: "Tweed",
-      price: 58.00,
+      price: 8500,
       compareAt: null,
       stock: 18,
       sold: 0,
@@ -291,19 +409,39 @@ export const seedDB = (): DB => ({
       name: "Hand-Embroidered Floral Silk",
       category: "Embroidered",
       subcategory: "Floral",
-      price: 85.00,
-      compareAt: 120.00,
+      price: 12500,
+      compareAt: 18000,
       stock: 12,
       sold: 0,
-      desc: "Exquisite hand-embroidered silk fabric featuring delicate floral motifs. Each piece is unique. Perfect for special occasion garments.",
+      desc: "Exquisite hand-embroidered silk fabric featuring delicate floral motifs. Each piece is unique. Perfect for special occasion garments and bridal wear.",
       material: "Silk base with cotton embroidery thread",
       dimensions: "44 inches wide, sold by the yard",
       careInstructions: "Dry clean only",
       image: null,
       images: [],
       featured: true,
-      tags: ["embroidered", "handmade", "floral", "luxury"],
+      tags: ["embroidered", "handmade", "floral", "luxury", "bridal"],
       createdAt: Date.now() - 86400000,
+    },
+    {
+      id: uid("prod"),
+      sellerId: "admin",
+      name: "Traditional Batik Print Cotton",
+      category: "Printed",
+      subcategory: "Batik",
+      price: 3200,
+      compareAt: 4500,
+      stock: 40,
+      sold: 0,
+      desc: "Authentic Sri Lankan batik print on soft cotton. Traditional designs created using wax-resist dyeing technique. Perfect for casual wear and home decor.",
+      material: "100% Cotton with batik print",
+      dimensions: "45 inches wide, sold by the yard",
+      careInstructions: "Hand wash cold separately, line dry",
+      image: null,
+      images: [],
+      featured: true,
+      tags: ["batik", "printed", "traditional", "Sri Lankan"],
+      createdAt: Date.now() - 86400000 * 6,
     },
   ],
   orders: [],

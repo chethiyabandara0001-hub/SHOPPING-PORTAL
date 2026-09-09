@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { AVATAR_COLORS, seedDB, uid } from "./data";
+import { AVATAR_COLORS, seedDB, uid, createEmptyAddress } from "./data";
 import type { Address, CartLine, DB, Order, OrderStatus, Product, Review, Role, SellerProfile, User } from "./data";
 import {
   authErrorMessage,
@@ -117,7 +117,7 @@ function ensureProfile(
     seller: role === "seller" ? preferred?.seller ?? null : null,
     color: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
     joined: Date.now(),
-    address: { line1: "", city: "", zip: "", country: "USA" },
+    address: null,  // Address added later by user
   };
   const guest = d.carts["guest"] ?? [];
   const mine = [...(d.carts[s.uid] ?? [])];
