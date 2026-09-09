@@ -487,14 +487,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           });
           const subtotal = items.reduce((a, i) => a + i.price * i.qty, 0);
           const fee = +(subtotal * db.settings.commission).toFixed(2);
+          const shippingRate = db.settings.shippingRates.find((r) => r.region === "Domestic")?.rate ?? 0;
           const order: Order = {
             id: `KO-${1000 + Math.floor(Math.random() * 9000)}`,
             buyerId: user.id,
             buyerName: user.name,
+            buyerEmail: user.email,
             items,
             subtotal,
+            shipping: shippingRate,
             fee,
-            total: subtotal,
+            total: subtotal + shippingRate,
             status: "pending",
             placedAt: Date.now(),
             timeline: [{ status: "pending", at: Date.now() }],
