@@ -204,6 +204,7 @@ export function Qty({
 /* ---------------- status pill ---------------- */
 export const STATUS_META: Record<OrderStatus, { label: string; cls: string; dot: string }> = {
   pending: { label: "Pending", cls: "bg-ambersoft text-[#8a5c05] border-amber/40", dot: "bg-amber" },
+  processing: { label: "Processing", cls: "bg-bluesoft text-bluedeep border-blue/30", dot: "bg-blue" },
   shipped: { label: "Shipped", cls: "bg-pinesoft text-pinedeep border-pine/30", dot: "bg-pine" },
   delivered: { label: "Delivered", cls: "bg-pine text-card border-pine", dot: "bg-card" },
   canceled: { label: "Canceled", cls: "bg-coralsoft text-coral border-coral/40", dot: "bg-coral" },

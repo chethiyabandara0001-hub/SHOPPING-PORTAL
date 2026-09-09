@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { AVATAR_COLORS, seedDB, uid } from "./data";
+import { AVATAR_COLORS, seedDB, uid, createEmptyAddress } from "./data";
 import type { Address, CartLine, DB, Order, OrderStatus, Product, Review, Role, SellerProfile, User } from "./data";
 import {
   authErrorMessage,
@@ -117,7 +117,7 @@ function ensureProfile(
     seller: role === "seller" ? preferred?.seller ?? null : null,
     color: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
     joined: Date.now(),
-    address: { line1: "", city: "", zip: "", country: "USA" },
+    address: null,  // Address added later by user
   };
   const guest = d.carts["guest"] ?? [];
   const mine = [...(d.carts[s.uid] ?? [])];
@@ -487,14 +487,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           });
           const subtotal = items.reduce((a, i) => a + i.price * i.qty, 0);
           const fee = +(subtotal * db.settings.commission).toFixed(2);
+          const shippingRate = db.settings.shippingRates.find((r) => r.region === "Domestic")?.rate ?? 0;
           const order: Order = {
             id: `KO-${1000 + Math.floor(Math.random() * 9000)}`,
             buyerId: user.id,
             buyerName: user.name,
+            buyerEmail: user.email,
             items,
             subtotal,
+            shipping: shippingRate,
             fee,
-            total: subtotal,
+            total: subtotal + shippingRate,
             status: "pending",
             placedAt: Date.now(),
             timeline: [{ status: "pending", at: Date.now() }],

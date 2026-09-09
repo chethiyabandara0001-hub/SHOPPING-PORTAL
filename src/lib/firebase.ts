@@ -1,17 +1,18 @@
 /* ------------------------------------------------------------------ */
-/*  Firebase — kiosk-shopping                                          */
+/*  Firebase — Viora Textile Marketplace                               */
 /*  The SDK loads lazily (code-split chunk) so the shop shell stays    */
 /*  light; every helper below is safe to call before it resolves.      */
+/*  Configuration loaded from environment variables.                   */
 /* ------------------------------------------------------------------ */
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAISVtyphO1eRggAcoEJRjIA-Ow2TZqsAQ",
-  authDomain: "kiosk-shopping-ad738.firebaseapp.com",
-  projectId: "kiosk-shopping-ad738",
-  storageBucket: "kiosk-shopping-ad738.firebasestorage.app",
-  messagingSenderId: "926649050387",
-  appId: "1:926649050387:web:a197d416c328c7acc366e6",
-  measurementId: "G-45CQX9ZGLL",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAISVtyphO1eRggAcoEJRjIA-Ow2TZqsAQ",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "kiosk-shopping-ad738.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "kiosk-shopping-ad738",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "kiosk-shopping-ad738.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "926649050387",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:926649050387:web:a197d416c328c7acc366e6",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-45CQX9ZGLL",
 };
 
 interface Sdk {

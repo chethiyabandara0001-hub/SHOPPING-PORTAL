@@ -1,0 +1,212 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ==================== HELPER FUNCTIONS ====================
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Get the authenticated user's UID
+    function getAuthUid() {
+      return request.auth.uid;
+    }
+    
+    // Check if user is admin (role stored in users collection)
+    function isAdmin() {
+      let userData = get(/databases/$(database)/documents/users/$(getAuthUid())).data;
+      return userData != null && userData.role == 'admin';
+    }
+    
+    // Check if user is seller
+    function isSeller() {
+      let userData = get(/databases/$(database)/documents/users/$(getAuthUid())).data;
+      return userData != null && userData.role == 'seller';
+    }
+    
+    // Check if user is blocked
+    function isBlocked() {
+      let userData = get(/databases/$(database)/documents/users/$(getAuthUid())).data;
+      return userData != null && userData.blocked == true;
+    }
+    
+    // Verify user owns a resource
+    function isOwner(userId) {
+      return getAuthUid() == userId;
+    }
+    
+    // Validate user data structure
+    function isValidUserData(data) {
+      return data.keys().hasAll(['id', 'name', 'email', 'role', 'blocked', 'joined'])
+        && data.role in ['buyer', 'seller', 'admin']
+        && data.email is string
+        && data.name is string;
+    }
+    
+    // Validate product data structure
+    function isValidProductData(data) {
+      return data.keys().hasAll(['id', 'sellerId', 'name', 'price', 'stock', 'category'])
+        && data.price is number && data.price > 0
+        && data.stock is number && data.stock >= 0
+        && data.sellerId is string;
+    }
+    
+    // Validate order data structure
+    function isValidOrderData(data) {
+      return data.keys().hasAll(['id', 'buyerId', 'items', 'total', 'status', 'placedAt'])
+        && data.buyerId is string
+        && data.items is list
+        && data.items.size() > 0
+        && data.status in ['pending', 'processing', 'shipped', 'delivered', 'canceled'];
+    }
+    
+    // Validate review data
+    function isValidReviewData(data) {
+      return data.keys().hasAll(['productId', 'userId', 'rating', 'text'])
+        && data.rating is number && data.rating >= 1 && data.rating <= 5
+        && data.text is string && data.text.size() > 0 && data.text.size() <= 1000;
+    }
+    
+    // ==================== USERS COLLECTION ====================
+    
+    match /users/{userId} {
+      // Allow reading any user profile (for displaying seller info, etc.)
+      allow read: if isAuthenticated();
+      
+      // Users can create their own profile on signup
+      allow create: if isAuthenticated() 
+        && isOwner(userId)
+        && isValidUserData(request.resource.data)
+        // Prevent self-assigning admin role - only existing admin can assign admin
+        && (request.resource.data.role != 'admin' || isAdmin());
+      
+      // Users can update their own profile
+      allow update: if isAuthenticated()
+        && !isBlocked()
+        && (isOwner(userId) || isAdmin())
+        // Users cannot change their own role (prevent privilege escalation)
+        && (request.resource.data.role == resource.data.role || isAdmin())
+        // Users cannot unblock themselves
+        && (request.resource.data.blocked == resource.data.blocked || isAdmin());
+      
+      // Only admins can delete users
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+    
+    // ==================== PRODUCTS COLLECTION ====================
+    
+    match /products/{productId} {
+      // Anyone can read products (they're public marketplace items)
+      allow read: if true;
+      
+      // Sellers and admins can create products
+      allow create: if isAuthenticated()
+        && !isBlocked()
+        && isValidProductData(request.resource.data)
+        // Seller must be creating their own product
+        && (request.resource.data.sellerId == getAuthUid() || isAdmin());
+      
+      // Only product owner or admin can update
+      allow update: if isAuthenticated()
+        && !isBlocked()
+        && (resource.data.sellerId == getAuthUid() || isAdmin())
+        && isValidProductData(request.resource.data);
+      
+      // Only product owner or admin can delete
+      allow delete: if isAuthenticated()
+        && (resource.data.sellerId == getAuthUid() || isAdmin());
+    }
+    
+    // ==================== ORDERS COLLECTION ====================
+    
+    match /orders/{orderId} {
+      // Buyers can read their own orders
+      // Sellers can read orders containing their products
+      // Admins can read all orders
+      allow read: if isAuthenticated()
+        && !isBlocked()
+        && (resource.data.buyerId == getAuthUid()
+            || resource.data.items.exists(i, i.sellerId == getAuthUid())
+            || isAdmin());
+      
+      // Buyers can create their own orders
+      allow create: if isAuthenticated()
+        && !isBlocked()
+        && isValidOrderData(request.resource.data)
+        && request.resource.data.buyerId == getAuthUid();
+      
+      // Only admins can update order status (or sellers for their own products?)
+      // For safety, only admins update order status
+      allow update: if isAuthenticated()
+        && !isBlocked()
+        && (isAdmin() 
+            || (resource.data.items.exists(i, i.sellerId == getAuthUid())
+                && request.resource.data.status in ['processing', 'shipped']));
+      
+      // Only admins can delete orders
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+    
+    // ==================== REVIEWS COLLECTION ====================
+    
+    match /reviews/{reviewId} {
+      // Anyone can read reviews
+      allow read: if true;
+      
+      // Authenticated users can create reviews for products they purchased
+      // (Additional verification should happen in Cloud Functions)
+      allow create: if isAuthenticated()
+        && !isBlocked()
+        && isValidReviewData(request.resource.data)
+        && request.resource.data.userId == getAuthUid();
+      
+      // Users can update their own reviews
+      allow update: if isAuthenticated()
+        && !isBlocked()
+        && resource.data.userId == getAuthUid()
+        && isValidReviewData(request.resource.data);
+      
+      // Users can delete their own reviews, admins can delete any
+      allow delete: if isAuthenticated()
+        && (resource.data.userId == getAuthUid() || isAdmin());
+    }
+    
+    // ==================== CARTS COLLECTION ====================
+    
+    match /carts/{userId} {
+      // Users can only read/write their own cart
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow write: if isAuthenticated() 
+        && !isBlocked()
+        && isOwner(userId);
+    }
+    
+    // ==================== WISHLISTS COLLECTION ====================
+    
+    match /wishlists/{userId} {
+      // Users can only read/write their own wishlist
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow write: if isAuthenticated()
+        && !isBlocked()
+        && isOwner(userId);
+    }
+    
+    // ==================== SETTINGS COLLECTION ====================
+    
+    match /settings/{settingId} {
+      // Anyone can read market settings
+      allow read: if true;
+      
+      // Only admins can update settings
+      allow write: if isAuthenticated() && isAdmin();
+    }
+    
+    // ==================== DEFAULT DENY ====================
+    // Deny all other access not explicitly allowed above
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
